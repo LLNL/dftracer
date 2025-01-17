@@ -16,6 +16,38 @@ class DFAnalyzerPlots(object):
         self.events = events
         self.slope_threshold = slope_threshold
         self.time_granularity = time_granularity
+        
+    def create_event_timeline(self, df):
+        # Filter for start and end events
+        start_events = df[df['name'] == 'start']
+        end_events = df[df['name'] == 'end']
+
+        # Merging start and end events on pid
+        merged_events = start_events[['pid', 'ts']].rename(columns={'ts': 'start_time'}).merge(
+            end_events[['pid', 'ts']].rename(columns={'ts': 'end_time'}),
+            on='pid',
+            how='inner'
+        )
+
+        # Convert microseconds to seconds
+        merged_events['start_time'] = merged_events['start_time'] / 1_000_000  # Convert to seconds
+        merged_events['end_time'] = merged_events['end_time'] / 1_000_000      # Convert to seconds
+
+        # Convert PIDs to strings for better labeling
+        merged_events['pid'] = merged_events['pid'].astype(str)
+
+        # Create the plot
+        plt.figure(figsize=(10, 6))
+        
+        for idx, row in merged_events.iterrows():
+            plt.hlines(y=row['pid'], xmin=row['start_time'], xmax=row['end_time'], color='blue', linewidth=2)
+
+        plt.xlabel('Time (seconds)')
+        plt.ylabel('PID')
+        plt.title('Event Timeline')
+        plt.grid(True)
+
+        plt.show()
 
     def time_bw_timeline(
         self,
@@ -351,3 +383,4 @@ class GrepIOPlots:
         plt.grid(True, linestyle='--', alpha=0.7)
         plt.tight_layout()
         plt.show()
+        
