@@ -147,3 +147,14 @@ function(install_external_project name version var_name url tag install_prefix c
     include_directories(${CMAKE_BINARY_DIR}/src/${name}/include)
   endif()
 endfunction()
+
+################################################################
+# Debug configurations
+################################################################
+
+function(dftracer_debug_config target_list)
+  foreach(target ${target_list})
+    target_compile_definitions(${target} PUBLIC DFTRACER_DEBUG)
+    target_compile_options(${target} PRIVATE -g -O0)
+  endforeach()
+endfunction()

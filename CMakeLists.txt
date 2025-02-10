@@ -288,16 +288,13 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC DFTRACER_LOGGER_LEVEL_ERROR)
 target_link_libraries(${PROJECT_NAME} ${DEPENDENCY_LIB})
 add_library(${PROJECT_NAME}_dbg SHARED)
 target_link_libraries(${PROJECT_NAME}_dbg ${DEPENDENCY_LIB})
-target_compile_definitions(${PROJECT_NAME}_dbg PUBLIC DFTRACER_LOGGER_CPP_LOGGER)
-target_compile_definitions(${PROJECT_NAME}_dbg PUBLIC DFTRACER_LOGGER_LEVEL_TRACE)
-target_compile_definitions(${PROJECT_NAME}_dbg PUBLIC DFTRACER_LOGGER_LEVEL_DEBUG)
-target_compile_definitions(${PROJECT_NAME}_dbg PUBLIC DFTRACER_LOGGER_LEVEL_INFO)
-target_compile_definitions(${PROJECT_NAME}_dbg PUBLIC DFTRACER_LOGGER_LEVEL_WARN)
-target_compile_definitions(${PROJECT_NAME}_dbg PUBLIC DFTRACER_LOGGER_LEVEL_ERROR)
 add_library(${PROJECT_NAME}_preload SHARED)
 target_link_libraries(${PROJECT_NAME}_preload ${DEPENDENCY_LIB} ${PROJECT_NAME})
 add_library(${PROJECT_NAME}_preload_dbg SHARED)
 target_link_libraries(${PROJECT_NAME}_preload_dbg ${DEPENDENCY_LIB} ${PROJECT_NAME}_dbg)
+
+set(DFTRACER_DEBUG_TARGETS ${PROJECT_NAME}_dbg ${PROJECT_NAME}_preload_dbg)
+
 if (DFTRACER_BUILD_PYTHON_BINDINGS)
     pybind11_add_module(py${PROJECT_NAME} ${DFTRACER_CORE_SRC} ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/pydftracer.cpp)
     target_compile_definitions(py${PROJECT_NAME} PRIVATE VERSION_INFO=${EXAMPLE_VERSION_INFO})
@@ -306,6 +303,7 @@ if (DFTRACER_BUILD_PYTHON_BINDINGS)
     pybind11_add_module(py${PROJECT_NAME}_dbg ${DFTRACER_CORE_SRC} ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/pydftracer_dbg.cpp)
     target_compile_definitions(py${PROJECT_NAME}_dbg PRIVATE VERSION_INFO=${EXAMPLE_VERSION_INFO})
     target_link_libraries(py${PROJECT_NAME}_dbg PRIVATE ${DEPENDENCY_LIB})
+    list(APPEND DFTRACER_DEBUG_TARGETS py${PROJECT_NAME}_dbg)
 endif()
 target_sources(${PROJECT_NAME}
         PRIVATE
@@ -353,6 +351,7 @@ set_target_properties(${PROJECT_NAME}
         SOVERSION ${DFTRACER_PACKAGE_VERSION}
         )
 
+dftracer_debug_config(${DFTRACER_DEBUG_TARGETS})
 dftracer_install_headers("${DFTRACER_CORE_PUBLIC_INCLUDE}")
 install(
         TARGETS ${PROJECT_NAME}
@@ -545,6 +544,9 @@ export(EXPORT ${DFTRACER_EXPORTED_TARGETS}
 configure_file("${CMAKE_SOURCE_DIR}/cmake/configure_files/dftracer_config.hpp.in"
                "${CMAKE_INCLUDE_OUTPUT_DIRECTORY}/dftracer/dftracer_config.hpp" @ONLY)
 
+configure_file("${CMAKE_SOURCE_DIR}/cmake/configure_files/dftracer_config_dbg.hpp.in"
+               "${CMAKE_INCLUDE_OUTPUT_DIRECTORY}/dftracer/dftracer_config_dbg.hpp" @ONLY)
+
 ################################################################
 # Install DFTRACER
 ################################################################
@@ -559,6 +561,11 @@ write_basic_package_version_file(
 
 install(FILES
         "${CMAKE_INCLUDE_OUTPUT_DIRECTORY}/dftracer/dftracer_config.hpp"
+        DESTINATION
+        ${DFTRACER_INSTALL_INCLUDE_DIR}/dftracer)
+
+install(FILES
+        "${CMAKE_INCLUDE_OUTPUT_DIRECTORY}/dftracer/dftracer_config_dbg.hpp"
         DESTINATION
         ${DFTRACER_INSTALL_INCLUDE_DIR}/dftracer)
 

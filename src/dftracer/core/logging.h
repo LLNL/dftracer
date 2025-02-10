@@ -1,7 +1,12 @@
 #ifndef DFTRACER_COMMON_DFTRACER_LOGGING_H
 #define DFTRACER_COMMON_DFTRACER_LOGGING_H
 
+#ifdef DFTRACER_DEBUG
+#include <dftracer/dftracer_config_dbg.hpp>
+#else
 #include <dftracer/dftracer_config.hpp>
+#endif
+
 /* External Headers */
 #include <sys/types.h>
 #include <unistd.h>
