@@ -300,7 +300,7 @@ if (DFTRACER_BUILD_PYTHON_BINDINGS)
     target_compile_definitions(py${PROJECT_NAME} PRIVATE VERSION_INFO=${EXAMPLE_VERSION_INFO})
     target_link_libraries(py${PROJECT_NAME} PRIVATE ${DEPENDENCY_LIB})
 
-    pybind11_add_module(py${PROJECT_NAME}_dbg ${DFTRACER_CORE_SRC} ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/pydftracer_dbg.cpp)
+    pybind11_add_module(py${PROJECT_NAME}_dbg NO_EXTRAS ${DFTRACER_CORE_SRC} ${CMAKE_CURRENT_SOURCE_DIR}/src/dftracer/pydftracer_dbg.cpp)
     target_compile_definitions(py${PROJECT_NAME}_dbg PRIVATE VERSION_INFO=${EXAMPLE_VERSION_INFO})
     target_link_libraries(py${PROJECT_NAME}_dbg PRIVATE ${DEPENDENCY_LIB})
     list(APPEND DFTRACER_DEBUG_TARGETS py${PROJECT_NAME}_dbg)
@@ -351,7 +351,7 @@ set_target_properties(${PROJECT_NAME}
         SOVERSION ${DFTRACER_PACKAGE_VERSION}
         )
 
-dftracer_debug_config(${DFTRACER_DEBUG_TARGETS})
+dftracer_debug_config("${DFTRACER_DEBUG_TARGETS}")
 dftracer_install_headers("${DFTRACER_CORE_PUBLIC_INCLUDE}")
 install(
         TARGETS ${PROJECT_NAME}
