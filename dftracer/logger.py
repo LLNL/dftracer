@@ -70,14 +70,6 @@ class dftracer:
             log_level = logging.INFO
         elif DFTRACER_LOG_LEVEL == "WARN":
             log_level = logging.WARN
-        logging.basicConfig(
-            level=log_level,
-            handlers=[
-                logging.FileHandler(outfile, mode="a", encoding='utf-8'),
-                logging.StreamHandler()
-            ],
-            format='[DFTRACER_PY %(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'
-        )
         instance = dftracer.get_instance()
         instance.dbg_logging = setup_logger(name="dftracer_dbg", log_file=outfile, formatter='[DFTRACER_PY %(levelname)s] %(message)s [%(pathname)s:%(lineno)d]', level=log_level)
         instance.dbg_logging.debug(f"logger.initialize_log {logfile} {data_dir} {process_id}")
