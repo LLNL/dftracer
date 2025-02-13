@@ -28,12 +28,22 @@ if DFTRACER_ENABLE:
     signal.signal(signal.SIGTERM, capture_signal)
 
 
+def setup_logger(name, log_file, formatter, level=logging.INFO):
+    """To setup as many loggers as you want"""
+    handler = logging.FileHandler(log_file)
+    handler.setFormatter(logging.Formatter(formatter))
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.addHandler(handler)
+    return logger
+
 class dftracer:
     __instance = None
 
     def __init__(self):
         if DFTRACER_ENABLE:
             self.logger = None
+            self.dbg_logging = None
         dftracer.__instance = self
 
     @classmethod
@@ -60,54 +70,47 @@ class dftracer:
             log_level = logging.INFO
         elif DFTRACER_LOG_LEVEL == "WARN":
             log_level = logging.WARN
-        logging.basicConfig(
-            level=log_level,
-            handlers=[
-                logging.FileHandler(outfile, mode="a", encoding='utf-8'),
-                logging.StreamHandler()
-            ],
-            format='[DFTRACER_PY %(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'
-        )
-        logging.debug(f"logger.initialize_log {logfile} {data_dir} {process_id}")
         instance = dftracer.get_instance()
+        instance.dbg_logging = setup_logger(name="dftracer_dbg", log_file=outfile, formatter='[DFTRACER_PY %(levelname)s] %(message)s [%(pathname)s:%(lineno)d]', level=log_level)
+        instance.dbg_logging.debug(f"logger.initialize_log {logfile} {data_dir} {process_id}")
         if DFTRACER_ENABLE:
             instance.logger = profiler
-            logging.debug(f"logger.initialize {logfile} {data_dir} {process_id}")
+            instance.dbg_logging.debug(f"logger.initialize {logfile} {data_dir} {process_id}")
             instance.logger.initialize(log_file=logfile, data_dirs=data_dir, process_id=process_id)
         return instance
 
     def get_time(self):
         if DFTRACER_ENABLE and self.logger:
             t = self.logger.get_time()
-            logging.debug(f"logger.get_time {t}")
+            self.dbg_logging.debug(f"logger.get_time {t}")
             return t
         return 0
     
     def enter_event(self):
         if DFTRACER_ENABLE and self.logger:
             self.logger.enter_event()
-            logging.debug(f"logger.enter_event")
+            self.dbg_logging.debug(f"logger.enter_event")
 
     def exit_event(self):
         if DFTRACER_ENABLE and self.logger:
             self.logger.exit_event()
-            logging.debug(f"logger.exit_event")
+            self.dbg_logging.debug(f"logger.exit_event")
 
     def log_event(self, name, cat, start_time, duration, string_args=None):
         if DFTRACER_ENABLE and self.logger:
-            logging.debug(f"logger.log_event {name} {cat} {start_time} {duration} {string_args}")
+            self.dbg_logging.debug(f"logger.log_event {name} {cat} {start_time} {duration} {string_args}")
             if string_args is None:
                 string_args = {}
             self.logger.log_event(name=name, cat=cat, start_time=start_time, duration=duration, string_args=string_args)
 
     def log_metadata_event(self, key, value):
         if DFTRACER_ENABLE and self.logger:
-            logging.debug(f"logger.log_metadata_event {key} {value}")
+            self.dbg_logging.debug(f"logger.log_metadata_event {key} {value}")
             self.logger.log_metadata_event(key=key, value=value)
 
     def finalize(self):
         if DFTRACER_ENABLE and self.logger:
-            logging.debug(f"logger.finalize")
+            self.dbg_logging.debug(f"logger.finalize")
             self.logger.finalize()
 
 def get_default_args(func):
