@@ -49,6 +49,8 @@ Arguments for this script are
 7. **-v** enable verbose mode.
 8. **-h** display help
 
+Alternatively, the **dftracer_compact_by_pid** script can be used to compact trace files by process ID using the same set of parameters.
+
 ------------------
 Sanitize script
 ------------------
