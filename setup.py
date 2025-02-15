@@ -1,12 +1,12 @@
 import os
-import re
+import pathlib
+import site
 import subprocess
 import sys
 from pathlib import Path
-print(sys.argv)
-from setuptools import Extension, setup, find_namespace_packages, find_packages
+
+from setuptools import Extension, find_namespace_packages, setup
 from setuptools.command.build_ext import build_ext
-import site
 
 # Convert distutils Windows platform specifiers to CMake -A arguments
 PLAT_TO_CMAKE = {
@@ -31,6 +31,7 @@ class CMakeBuild(build_ext):
         is_wheel = os.getenv("DFTRACER_WHEEL", "0") == "1"
         cmake_args = []
         from distutils.sysconfig import get_python_lib
+
         project_dir = Path.cwd()
         # Must be in this form due to bug in .resolve() only fixed in Python 3.10+
         ext_fullpath = project_dir / self.get_ext_fullpath(ext.name)
@@ -39,18 +40,18 @@ class CMakeBuild(build_ext):
         print(f"{extdir}")
         install_prefix = f"{get_python_lib()}/dftracer"
         if "DFT_LOGGER_USER" in os.environ:
-            install_prefix=f"{site.USER_SITE}/dftracer"
+            install_prefix = f"{site.USER_SITE}/dftracer"
             # cmake_args += [f"-DUSER_INSTALL=ON"]
         if "DFTRACER_INSTALL_DIR" in os.environ:
-            install_prefix = os.environ['DFTRACER_INSTALL_DIR']
-        
+            install_prefix = os.environ["DFTRACER_INSTALL_DIR"]
+
         python_site = extdir
 
         if is_wheel:
             install_prefix = f"{extdir}/dftracer"
 
         if "DFTRACER_PYTHON_SITE" in os.environ:
-            python_site = os.environ['DFTRACER_PYTHON_SITE']
+            python_site = os.environ["DFTRACER_PYTHON_SITE"]
 
         # if "DFTRACER_BUILD_DEPENDENCIES" not in os.environ or os.environ['DFTRACER_BUILD_DEPENDENCIES'] == "1":
         #     dependency_file = open(f"{project_dir}/dependency/cpp.requirements.txt", 'r')
@@ -63,10 +64,9 @@ class CMakeBuild(build_ext):
         #         os.system(f"bash {project_dir}/dependency/install_dependency.sh {parts[1]} {clone_dir} {install_prefix} {parts[2]} {need_install} {parts[4]} {parts[5]}")
 
         import pybind11 as py
+
         py_cmake_dir = py.get_cmake_dir()
         # py_cmake_dir = os.popen('python3 -c " import pybind11 as py; print(py.get_cmake_dir())"').read() #python("-c", "import pybind11 as py; print(py.get_cmake_dir())", output=str).strip()
-        
-        
 
         # Using this requires trailing slash for auto-detection & inclusion of
         # auxiliary "native" libs
@@ -81,14 +81,19 @@ class CMakeBuild(build_ext):
         cmake_args += [f"-DDFTRACER_PYTHON_EXE={sys.executable}"]
         cmake_args += [f"-DDFTRACER_PYTHON_SITE={python_site}"]
         cmake_args += [f"-DCMAKE_INSTALL_PREFIX={install_prefix}"]
-        cmake_args += [f"-DCMAKE_PREFIX_PATH={install_prefix}", f"-Dpybind11_DIR={py_cmake_dir}"]
-        cmake_args += [f"-DPYBIND11_FINDPYTHON=ON"]
+        cmake_args += [
+            f"-DCMAKE_PREFIX_PATH={install_prefix}",
+            f"-Dpybind11_DIR={py_cmake_dir}",
+        ]
+        cmake_args += ["-DPYBIND11_FINDPYTHON=ON"]
         cmake_args += ["-DDFTRACER_BUILD_PYTHON_BINDINGS=ON"]
         # Test related flags
 
         enable_tests = os.environ.get("DFTRACER_ENABLE_TESTS", "OFF")
         cmake_args += [f"-DDFTRACER_ENABLE_TESTS={enable_tests}"]
-        enable_dlio_tests = os.environ.get("DFTRACER_ENABLE_DLIO_BENCHMARK_TESTS", "OFF")
+        enable_dlio_tests = os.environ.get(
+            "DFTRACER_ENABLE_DLIO_BENCHMARK_TESTS", "OFF"
+        )
         cmake_args += [f"-DDFTRACER_ENABLE_DLIO_BENCHMARK_TESTS={enable_dlio_tests}"]
         enable_dlio_tests = os.environ.get("DFTRACER_ENABLE_PAPER_TESTS", "OFF")
         cmake_args += [f"-DDFTRACER_ENABLE_PAPER_TESTS={enable_dlio_tests}"]
@@ -107,7 +112,7 @@ class CMakeBuild(build_ext):
         #    f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}/lib",
         #    f"-DPYTHON_EXECUTABLE={sys.executable}",
         #    f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
-        #]
+        # ]
         build_args = []
         # Adding CMake arguments set as environment variable
         # (needed e.g. to build for ARM OSx on conda-forge)
@@ -117,30 +122,37 @@ class CMakeBuild(build_ext):
         # In this example, we pass in the version to C++. You might not need to.
         cmake_args += [f"-DEXAMPLE_VERSION_INFO={self.distribution.get_version()}"]
 
-
         # Set CMAKE_BUILD_PARALLEL_LEVEL to control the parallel build level
         # across all generators.
-        build_args += [f"--", "-j"]
+        build_args += ["--", "-j"]
 
         build_temp = Path(self.build_temp) / ext.name
         if not build_temp.exists():
             build_temp.mkdir(parents=True)
         print("cmake", ext.sourcedir, cmake_args)
 
-        if "DFTRACER_BUILD_DEPENDENCIES" not in os.environ or os.environ['DFTRACER_BUILD_DEPENDENCIES'] == "1":
+        if (
+            "DFTRACER_BUILD_DEPENDENCIES" not in os.environ
+            or os.environ["DFTRACER_BUILD_DEPENDENCIES"] == "1"
+        ):
             print("Installing dependencies.")
             install_cmake_args = cmake_args
             install_cmake_args += ["-DDFTRACER_INSTALL_DEPENDENCIES=ON"]
 
             subprocess.run(
-                ["cmake", ext.sourcedir, *install_cmake_args], cwd=build_temp, check=True
+                ["cmake", ext.sourcedir, *install_cmake_args],
+                cwd=build_temp,
+                check=True,
             )
             subprocess.run(
                 ["cmake", "--build", ".", *build_args], cwd=build_temp, check=True
             )
         cmake_args += ["-DDFTRACER_INSTALL_DEPENDENCIES=OFF"]
         # link correct depedencies
-        cmake_args += [f"-Dyaml-cpp_DIR={install_prefix}", f"-Dpybind11_DIR={py_cmake_dir}"]
+        cmake_args += [
+            f"-Dyaml-cpp_DIR={install_prefix}",
+            f"-Dpybind11_DIR={py_cmake_dir}",
+        ]
 
         subprocess.run(
             ["cmake", ext.sourcedir, *cmake_args], cwd=build_temp, check=True
@@ -148,11 +160,9 @@ class CMakeBuild(build_ext):
         subprocess.run(
             ["cmake", "--build", ".", *build_args], cwd=build_temp, check=True
         )
-        subprocess.run(
-            ["cmake", "--install", "."], cwd=build_temp, check=True
-        )
+        subprocess.run(["cmake", "--install", "."], cwd=build_temp, check=True)
 
-import pathlib
+
 here = pathlib.Path(__file__).parent.resolve()
 long_description = (here / "README.md").read_text(encoding="utf-8")
 # The information here can also be placed in setup.cfg - better separation of
@@ -186,41 +196,52 @@ setup(
         "Programming Language :: Python :: 3 :: Only",
     ],
     install_requires=["pybind11", "zindex_py==0.0.4"],
-    requires=["pybind11","setuptools"],
+    requires=["pybind11", "setuptools"],
     keywords="profiler, deep learning, I/O, benchmark, NPZ, pytorch benchmark, tensorflow benchmark",
     project_urls={  # Optional
         "Bug Reports": "https://github.com/hariharan-devarajan/dftracer/issues",
         "Source": "https://github.com/hariharan-devarajan/dftracer",
     },
-    packages=(find_namespace_packages(include=['dftracer', 'dftracer_dbg', 'dfanalyzer'])),
-    scripts=['script/dftracer_compact',
-             'script/dftracer_merge',
-             'script/dftracer_sanitize',
-             'script/dftracer_anonymize',
-             'script/dftracer_split',
-             'script/dftracer_create_index',
-             'script/dftracer_event_count',
-             'script/dftracer_validate', ],
-    package_dir={"dftracer": "dftracer", 
-                 "dftracer_dbg": "dftracer_dbg",
-                 "dfanalyzer": "dfanalyzer"},
-    ext_modules=[CMakeExtension("dftracer.pydftracer"),
-                 CMakeExtension("dftracer.pydftracer_dbg")],
+    packages=(
+        find_namespace_packages(include=["dftracer", "dftracer_dbg", "dfanalyzer"])
+    ),
+    scripts=[
+        "script/dftracer_compact",
+        "script/dftracer_compact_by_pid",
+        "script/dftracer_merge",
+        "script/dftracer_sanitize",
+        "script/dftracer_anonymize",
+        "script/dftracer_split",
+        "script/dftracer_create_index",
+        "script/dftracer_event_count",
+        "script/dftracer_validate",
+    ],
+    package_dir={
+        "dftracer": "dftracer",
+        "dftracer_dbg": "dftracer_dbg",
+        "dfanalyzer": "dfanalyzer",
+    },
+    ext_modules=[
+        CMakeExtension("dftracer.pydftracer"),
+        CMakeExtension("dftracer.pydftracer_dbg"),
+    ],
     cmdclass={"build_ext": CMakeBuild},
     zip_safe=False,
-    extras_require={"test": ["pytest>=6.0"],
-                    "dfanalyzer": [
-                        "seaborn>=0.13.2",
-                        "bokeh>=2.4.2",
-                        "pybind11",
-                        "pandas>=2.0.3",
-                        "dask>=2023.5.0",
-                        "distributed",
-                        "numpy>=1.24.3",
-                        "pyarrow>=12.0.1",
-                        "rich>=13.6.0",
-                        "python-intervals>=1.10.0.post1",
-                        "matplotlib>=3.7.3",
-                    ]},
+    extras_require={
+        "test": ["pytest>=6.0"],
+        "dfanalyzer": [
+            "seaborn>=0.13.2",
+            "bokeh>=2.4.2",
+            "pybind11",
+            "pandas>=2.0.3",
+            "dask>=2023.5.0",
+            "distributed",
+            "numpy>=1.24.3",
+            "pyarrow>=12.0.1",
+            "rich>=13.6.0",
+            "python-intervals>=1.10.0.post1",
+            "matplotlib>=3.7.3",
+        ],
+    },
     python_requires=">=3.7",
 )
