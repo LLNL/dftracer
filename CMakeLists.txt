@@ -427,6 +427,14 @@ install(
         bin
 )
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/script/dftracer_compact_by_pid ${EXECUTABLE_OUTPUT_PATH}/dftracer_compact_by_pid COPYONLY)
+install(
+        FILES
+        ${EXECUTABLE_OUTPUT_PATH}/dftracer_compact_by_pid
+        DESTINATION
+        bin
+)
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/script/dftracer_merge ${EXECUTABLE_OUTPUT_PATH}/dftracer_merge COPYONLY)
 install(
         FILES
